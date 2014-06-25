@@ -25,22 +25,19 @@ logging, ui, implementation, and parallelization:
   A. python-gflags: a commandline flags module for python
      (http://code.google.com/p/python-gflags/)
 
-  B. pyglog: a logging facility for python based on google-glog
-     (http://www.isi.edu/~riesa/software/pyglog)
-
-  C. svector: a python module for sparse vectors, by David Chiang
+  B. svector: a python module for sparse vectors, by David Chiang
      A version is included in this distribution under svector/
      You can download the latest version from:
      http://www.isi.edu/~chiang/software/svector.tgz
 
-  D. An MPI Implementation. We use MPICH2.
+  C. An MPI Implementation. We use MPICH2.
      (http://www.mcs.anl.gov/research/projects/mpich2/)
      Download the latest stable release for your architecture.
      Then follow the Installer's Guide, available in the documentation
      section of the website.
      See Section II for more information.
 
-  E. MPI for Python (mpi4py): Python bindings for MPI.
+  D. MPI for Python (mpi4py): Python bindings for MPI.
      Available as Debian repository (sudo apt-get install python-mpi4py),
      as pypi package (pip install mpi4py), or on the project website:
      http://mpi4py.scipy.org/
