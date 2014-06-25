@@ -35,11 +35,12 @@ import Fmeasure
 import GridAlign
 import gflags as flags
 import io_helper
-import mpi
+from mpi4py import MPI
 import svector
 from pyglog import *
 
 FLAGS = flags.FLAGS
+mpi = MPI.COMM_WORLD
 
 def readWeights(weights_file):
   """
@@ -203,7 +204,7 @@ def decode_parallel(weights, indices, blob, name="", out=sys.stdout):
         cPickle.dump(model.modelBest.links, result_file, protocol=cPickle.HIGHEST_PROTOCOL)
 
   result_file.close()
-  done = mpi.gather(value=True, root=0)
+  done = mpi.gather(True, root=0)
 
   # REDUCE HERE
   if myRank == masterRank:
@@ -418,7 +419,7 @@ def perceptron_parallel(epoch, indices, blob, weights = None, valid_feature_name
   # Gather "done" messages from workers
   #############################################
   # Synchronize
-  done = mpi.gather(value=True,root=0)
+  done = mpi.gather(True,root=0)
 
   #####################################################################################
   # Compute f-measure over all alignments
@@ -454,7 +455,7 @@ def perceptron_parallel(epoch, indices, blob, weights = None, valid_feature_name
   # But make sure worker nodes don't attempt to read from the weights
   # file before the root node has written it.
   # Sync-up with a blocking broadcast call
-  ready = mpi.broadcast(value=True, root=0)
+  ready = mpi.bcast(True, root=0)
   mw = robustRead(tmpdir+'/weights')
   masterWeights = cPickle.load(mw)
   mw.close()
@@ -553,7 +554,7 @@ def do_training(indices, training_blob, heldout_blob, weights, weights_out, debi
     # upon this randomized ordering.
     if myRank == 0 and FLAGS.shuffle:
       random.shuffle(indices)
-    indices = mpi.broadcast(value=indices, root=0)
+    indices = mpi.bcast(indices, root=0)
 
     ##################################################
     # SEARCH: Find 1-best under current model
@@ -721,7 +722,7 @@ if __name__ == "__main__":
         base_tempdir = "."
       tmpdir = tempfile.mkdtemp(prefix='align-'+str(os.getpid())+'-',
                                 dir=base_tempdir)
-    tmpdir = mpi.broadcast(value=tmpdir, root=0)
+    tmpdir = mpi.bcast(tmpdir, root=0)
 
 
     ################################################

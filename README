@@ -40,10 +40,10 @@ logging, ui, implementation, and parallelization:
      section of the website.
      See Section II for more information.
 
-  E. Boost MPI Python bindings.
-     (http://www.boost.org/users/download/)
-     Installation instructions:
-     http://www.boost.org/doc/libs/1_49_0/doc/html/mpi.html
+  E. MPI for Python (mpi4py): Python bindings for MPI.
+     Available as Debian repository (sudo apt-get install python-mpi4py),
+     as pypi package (pip install mpi4py), or on the project website:
+     http://mpi4py.scipy.org/
 
 ============================================
 II. PREPARING YOUR DATA

@@ -1,7 +1,8 @@
 # read_input.py
 import sys
-import mpi
+from mpi4py import MPI
 
+mpi = MPI.COMM_WORLD
 
 def write_master(msg, handle=sys.stderr):
     if mpi.rank == 0:
