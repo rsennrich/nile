@@ -55,10 +55,11 @@ class Tree(object):
     child.parent = weakref.ref(self)
     if i != -1:
       self.children[i:i] = [child]
+      for j in range(i,len(self.children)):
+        self.children[j].order = j
     else:
-      self.children[len(self.children):]=[child]
-    for j in range(i,len(self.children)):
-      self.children[j].order = j
+      self.children.append(child)
+      self.children[-1].order = len(self.children)-1
 
   def frontier(self):
     if len(self.children) != 0:
