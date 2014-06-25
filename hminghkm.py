@@ -97,19 +97,24 @@ def mark_phrases(fwords, etree, align, offset = 0, hierarchical = False):
     s += c
     fcumul.append(s)
 
-  for node in etree.bottomup():
-    if len(node.children) == 0:
+  mark_node(etree, ecount, emin, emax, offset, fcumul, fn)
+
+
+# recursively mark each node with alignment counts
+def mark_node(node, ecount, emin, emax, offset, fcumul, fn):
+    if node.children:
+        node.ecount = 0
+        node.emin = fn
+        node.emax = -1
+        for child in node.children:
+            mark_node(child, ecount, emin, emax, offset, fcumul, fn)
+            node.emin = min(node.emin, child.emin)
+            node.emax = max(node.emax, child.emax)
+            node.ecount += child.ecount
+    else:
       node.ecount = ecount[node.i-offset]
       node.emin = emin[node.i-offset]
       node.emax = emax[node.i-offset]
-    else:
-      node.ecount = 0
-      node.emin = fn
-      node.emax = -1
-      for child in node.children:
-        node.emin = min(node.emin, child.emin)
-        node.emax = max(node.emax, child.emax)
-        node.ecount += child.ecount
 
     # We know how many alignment points the English node has,
     # and the number of alignment points that the corresponding
