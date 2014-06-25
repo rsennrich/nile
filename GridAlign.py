@@ -233,7 +233,10 @@ class Model(object):
     if self.etree.data is None:
       empty = PartialGridAlignment()
       empty.score = None
-      self.etree.partialAlignments.append(empty)
+      if self.etree.partialAlignments is not None:
+          self.etree.partialAlignments.append(empty)
+      else:
+          self.etree.partialAlignments = [empty]
       self.etree.oracle = PartialGridAlignment()
       return
 
@@ -324,6 +327,9 @@ class Model(object):
           newEdge.position = list(position)
           # Add new edge to the queue/buffer
           heappush(queue, (newEdge.score*-1, newEdge))
+
+          if currentNode.partialAlignments is None:
+              currentNode.partialAlignments = []
 
           # Keep filling up my cell until self.BEAM_SIZE has been reached *or*
           # we have exhausted all possible items in the queue
@@ -431,6 +437,9 @@ class Model(object):
         # Add new edge to the queue/buffer
         heappush(queue_hope, (newEdge.hope*-1, newEdge))
 
+        if currentNode.partialAlignments_hope is None:
+          currentNode.partialAlignments_hope = []
+
         while(len(queue_hope) > 0 and len(currentNode.partialAlignments_hope) < self.NT_BEAM):
           # Find current best; add to my cell
           (_, currentBestCombinedEdge_hope) = heappop(queue_hope)
@@ -516,6 +525,9 @@ class Model(object):
         newEdge.position = list(position)
         # Add new edge to the queue/buffer
         heappush(queue_fear, (newEdge.fear*-1, newEdge))
+
+        if currentNode.partialAlignments_fear is None:
+          currentNode.partialAlignments_fear = []
 
         while(len(queue_fear) > 0 and len(currentNode.partialAlignments_fear) < self.NT_BEAM):
           # Find current best; add to my cell

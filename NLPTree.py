@@ -8,30 +8,31 @@ from Tree import Tree
 from PartialGridAlignment import PartialGridAlignment
 
 class NLPTree(Tree):
-  def setup(self, data, children = None):
+
+  # default values (shared between instances - only for immutable objects)
+  parent = None
+  span = None
+  oracle = None
+  hope = None
+  fear = None
+  order = 0
+  i = -1
+  j = -1
+  partialAlignments = None
+  partialAlignments_hope = None
+  partialAlignments_fear = None
+
+  def __init__(self, data = None, children = None):
     self.data = data
-    self.span = None
-    self.parent = None
-    self.span = None
-    self.children = [ ]
     if children is not None:
       self.children = children
-    for ci, child in enumerate(self.children):
-      child.parent = weakref.ref(self)
-      child.order = ci
+      for ci, child in enumerate(self.children):
+        child.parent = weakref.ref(self)
+        child.order = ci
+    else:
+      self.children = []
 
     self.terminals = [ ]
-    self.oracle = None
-    self.hope = None
-    self.fear = None
-    self.order = 0
-    self.i = -1
-    self.j = -1
-
-    # Hold list of PartialGridAlignments associated with this node
-    self.partialAlignments = []
-    self.partialAlignments_hope = []
-    self.partialAlignments_fear = []
 
   def write(self):
     """

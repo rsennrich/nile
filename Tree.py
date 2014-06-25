@@ -1,10 +1,8 @@
 import weakref
 
 class Tree(object):
-  def __init__(self, data = None, children=None):
-    self.setup(data, children)
 
-  def setup(self, data, children = None):
+  def __init__(self, data = None, children = None):
     self.data = data
     self.parent = None
     self.children = []
