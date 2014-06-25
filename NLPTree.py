@@ -2,7 +2,6 @@
 # riesa@isi.edu (Jason Riesa)
 # Python tree class for reading and processing PTB-style trees
 
-import re
 import weakref
 from Tree import Tree
 from PartialGridAlignment import PartialGridAlignment
@@ -117,6 +116,6 @@ class NLPTree(Tree):
       return s
     else:
       s = str(self.data)
-      s = re.sub("\(", "-LRB-", s)
-      s = re.sub("\)", "-RRB-", s)
+      s = s.replace("(", "-LRB-")
+      s = s.replace(")", "-RRB-")
       return s
