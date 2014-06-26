@@ -33,7 +33,7 @@ from Alignment import readAlignmentString
 from PartialGridAlignment import PartialGridAlignment
 from NLPTreeHelper import *
 import Fmeasure
-import svector
+import pysvector as svector
 import hminghkm
 
 class Model(object):
@@ -640,7 +640,7 @@ class Model(object):
         eIndex = link[1]
         linkedIndices[fIndex].append(eIndex)
 
-      scoreVector = svector.Vector(edge.scoreVector)
+      scoreVector = edge.scoreVector.copy()
 
       if currentNode.data is not None and currentNode.data is not '_XXX_':
         for _, func in enumerate(self.featureTemplates_nonlocal):

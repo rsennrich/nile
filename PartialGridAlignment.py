@@ -1,5 +1,4 @@
-from collections import defaultdict
-import svector
+import pysvector as svector
 
 class PartialGridAlignment(object):
   def __hash__(self):

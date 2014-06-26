@@ -36,7 +36,7 @@ import GridAlign
 import gflags as flags
 import io_helper
 from mpi4py import MPI
-import svector
+import pysvector as svector
 from pyglog import *
 
 FLAGS = flags.FLAGS
@@ -386,7 +386,7 @@ def perceptron_parallel(epoch, indices, blob, weights = None, valid_feature_name
       # if w in [-tau, tau], w -> 0
       # else, move w closer to 0 by tau.
       if FLAGS.tau is not None:
-        for index, w in weights_sum.iteritems():
+        for index, w in list(weights_sum.items()):
           if w == 0:
             del weights_sum[index]
             continue

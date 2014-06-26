@@ -8,9 +8,9 @@
 # For example, to extract the weights from the 7th epoch of training:
 # ./extract-weights.py training.weights 7 training.weights-7
 
-import svector
 import sys
 import cPickle
+import pysvector as svector
 
 if __name__ == "__main__":
 

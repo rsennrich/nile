@@ -1,5 +1,6 @@
 # read_input.py
 import sys
+
 from mpi4py import MPI
 
 mpi = MPI.COMM_WORLD
