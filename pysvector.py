@@ -82,7 +82,6 @@ class Vector(dict):
     def __rmul__(self, other):
         return self.__mul__(other)
 
-
     def __div__(self, other):
         """scalar division"""
         if not isinstance(other, (int, float)):

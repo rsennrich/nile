@@ -21,7 +21,6 @@
 #   Year = {2010}}
 #########################################################
 
-import cPickle
 import sys
 from itertools import izip
 from operator import attrgetter

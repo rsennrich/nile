@@ -24,6 +24,7 @@
 from collections import defaultdict
 from itertools import izip
 import cPickle
+import json
 import os
 import sys
 import random
@@ -47,7 +48,7 @@ def readWeights(weights_file):
   Read feature function weights from an input file.
   This function reads a pickled svector object.
   """
-  return cPickle.load(weights_file)
+  return svector.Vector(json.load(weights_file))
 
 def robustRead(filename):
   """
@@ -282,7 +283,7 @@ def perceptron_parallel(epoch, indices, blob, weights = None, valid_feature_name
   weights_restart_filename = '%s/training-restart.%s' % (tmpdir, str(mpi.rank))
   if os.path.isfile(weights_restart_filename):
     weights_restart_file = open(weights_restart_filename, 'r')
-    weights = cPickle.load(weights_restart_file)
+    weights = readWeights(weights_restart_file)
     weights_restart_file.close()
   else:
     # If weights passed during function call is None start with empty.
@@ -293,7 +294,7 @@ def perceptron_parallel(epoch, indices, blob, weights = None, valid_feature_name
   weights_sum_filename = '%s/training.%s' % (tmpdir, str(mpi.rank))
   if os.path.isfile(weights_sum_filename):
     weights_sum_file = open(weights_sum_filename, 'r')
-    weights_sum = cPickle.load(weights_sum_file)
+    weights_sum = readWeights(weights_sum_file)
     weights_sum_file.close()
   else:
     weights_sum = svector.Vector()
@@ -406,13 +407,13 @@ def perceptron_parallel(epoch, indices, blob, weights = None, valid_feature_name
   output_filename = "%s/training.%s" %(tmpdir, str(mpi.rank))
   output_file = open(output_filename,'w')
   # Dump all weights used during this node's run; to be averaged by master along with others
-  cPickle.dump(weights_sum, output_file, protocol=cPickle.HIGHEST_PROTOCOL)
+  json.dump(weights_sum, output_file)
   output_file.close()
 
   # Remeber just the last weights used for this process; start here next epoch.
   output_filename_last_weights = "%s/training-restart.%s" %(tmpdir, str(mpi.rank))
   output_file_last_weights = open(output_filename_last_weights,'w')
-  cPickle.dump(weights, output_file_last_weights, protocol=cPickle.HIGHEST_PROTOCOL)
+  json.dump(weights, output_file_last_weights)
   output_file_last_weights.close()
 
   #############################################
@@ -431,7 +432,7 @@ def perceptron_parallel(epoch, indices, blob, weights = None, valid_feature_name
     for rank in range(nProcs):
       input_filename = tmpdir+'/training.'+str(rank)
       input_file = open(input_filename,'r')
-      masterWeights += cPickle.load(input_file)
+      masterWeights += readWeights(input_file)
       input_file.close()
     sys.stderr.write("Done reading data.\n")
     sys.stderr.write("len(masterWeights)= %d\n"%(len(masterWeights)))
@@ -446,7 +447,7 @@ def perceptron_parallel(epoch, indices, blob, weights = None, valid_feature_name
     # Dump master weights to file
     # There is only one weight vector in this file at a time.
     mw = robustWrite(tmpdir+'/weights')
-    cPickle.dump(masterWeights,mw,protocol=cPickle.HIGHEST_PROTOCOL)
+    json.dump(masterWeights,mw)
     mw.close()
 
   ######################################################################
@@ -457,7 +458,7 @@ def perceptron_parallel(epoch, indices, blob, weights = None, valid_feature_name
   # Sync-up with a blocking broadcast call
   ready = mpi.bcast(True, root=0)
   mw = robustRead(tmpdir+'/weights')
-  masterWeights = cPickle.load(mw)
+  masterWeights = readWeights(mw)
   mw.close()
 
   ######################################################################
@@ -567,7 +568,7 @@ def do_training(indices, training_blob, heldout_blob, weights, weights_out, debi
     # Dump weights for this iteration
     ####################################
     if myRank == 0:
-      cPickle.dump(newWeights_avg, weights_out, protocol=cPickle.HIGHEST_PROTOCOL)
+      json.dump(newWeights_avg, weights_out)
  	    # Need to flush output somehow here. Does weights_out.flush() work?
       weights_out.flush()
 

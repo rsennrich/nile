@@ -9,7 +9,7 @@
 # ./extract-weights.py training.weights 7 training.weights-7
 
 import sys
-import cPickle
+import json
 import pysvector as svector
 
 if __name__ == "__main__":
@@ -44,7 +44,7 @@ if __name__ == "__main__":
   count = 0
   while (count < iter):
     try:
-      cPickle.load(wf)
+      svector.Vector(json.load(wf))
     except:
       sys.stderr.write("Could not read file %s at iteration %d.\n" %(sys.argv[1], iter+1))
       sys.exit(1)
@@ -53,13 +53,13 @@ if __name__ == "__main__":
     continue
   # count == iter
   try:
-    w = cPickle.load(wf)
+    w = svector.Vector(json.load(wf))
   except:
     sys.stderr.write("Could not read file %s at iteration %d.\n" %(sys.argv[1], iter+1))
     sys.exit(1)
 
   # Write weight vector to output file
   sys.stderr.write("%d components\n" %(len(w)))
-  cPickle.dump(w,out,protocol=cPickle.HIGHEST_PROTOCOL)
+  json.dump(w,out)
   out.close()
   wf.close()
