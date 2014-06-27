@@ -124,16 +124,19 @@ def mark_node(node, ecount, emin, emax, offset, fcumul, fn):
     node.phrase = node.ecount > 0 and node.ecount == fcumul[node.emax]-fcumul[node.emin]
 
 def _detach_phrases(node, accum, etree, hierarchical):
-  copy = NLPTree.NLPTree(node.data, [_detach_phrases(child, accum, etree, hierarchical) for child in node.children])
-  copy.emin, copy.emax = node.emin, node.emax
+  if not (node.phrase and len(node.children) > 0) or (node == etree or (not hierarchical)):
+    copy_deep = NLPTree.NLPTree(node.data, [_detach_phrases(child, accum, etree, hierarchical) for child in node.children])
+    copy_deep.emin, copy_deep.emax = node.emin, node.emax
+
   if node.phrase and len(node.children) > 0:
     # We only care about the current node
     if node == etree or (not hierarchical):
-      accum.append(copy)
+      accum.append(copy_deep)
     copy = NLPTree.NLPTree(Variable(node.data))
     copy.emin, copy.emax = node.emin, node.emax
-
-  return copy
+    return copy
+  else:
+    return copy_deep
 
 def detach_phrases(node, etree, hierarchical):
   accum = []
