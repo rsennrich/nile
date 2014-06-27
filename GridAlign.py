@@ -593,12 +593,10 @@ class Model(object):
     In addition, set the score of the new edge.
     """
     newEdge = PartialGridAlignment()
-    newEdge.scoreVector_local = svector.Vector()
     newEdge.scoreVector = svector.Vector()
 
     for e in childEdges:
       newEdge.links += e.links
-      newEdge.scoreVector_local += e.scoreVector_local
       newEdge.scoreVector += e.scoreVector
 
       if e.boundingBox is None:
@@ -730,7 +728,6 @@ class Model(object):
     nullPartialAlignment = PartialGridAlignment()
     nullPartialAlignment.score = score = scoreVector.dot(self.weights)
     nullPartialAlignment.scoreVector = scoreVector
-    nullPartialAlignment.scoreVector_local = svector.Vector(scoreVector)
 
     self.addPartialAlignment(partialAlignments, nullPartialAlignment, self.BEAM_SIZE)
 
@@ -767,7 +764,6 @@ class Model(object):
       singleLinkPartialAlignment = PartialGridAlignment()
       singleLinkPartialAlignment.score = score
       singleLinkPartialAlignment.scoreVector = scoreVector
-      singleLinkPartialAlignment.scoreVector_local = svector.Vector(scoreVector)
       singleLinkPartialAlignment.links = currentLinks
 
       self.addPartialAlignment(partialAlignments, singleLinkPartialAlignment, self.BEAM_SIZE)
@@ -826,7 +822,6 @@ class Model(object):
         twoLinkPartialAlignment = PartialGridAlignment()
         twoLinkPartialAlignment.score = score
         twoLinkPartialAlignment.scoreVector = scoreVector
-        twoLinkPartialAlignment.scoreVector_local = svector.Vector(scoreVector)
         twoLinkPartialAlignment.links = currentLinks
 
         self.addPartialAlignment(partialAlignments, twoLinkPartialAlignment, self.BEAM_SIZE)
