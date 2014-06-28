@@ -28,35 +28,26 @@ if __name__ == "__main__":
 
   # Get iteration number we are interested in.
   try:
-    iter = int(sys.argv[2]) - 1
+    iter = int(sys.argv[2])
   except:
     sys.stderr.write("Argument <iter> must be an integer. Received: %s\n" %(sys.argv[2]))
     sys.exit(1)
 
   # Open output file for writing.
   try:
-    filename = sys.argv[3]+'.weights-%d' %(iter+1)
+    filename = sys.argv[3]+'.weights-%d' %(iter)
     out = open(filename, 'w')
   except:
     sys.stderr.write("Could not open output file %s for writing.\n" %(filename))
     sys.exit(1)
 
-  count = 0
-  while (count < iter):
-    try:
-      svector.Vector(json.load(wf))
-    except:
-      sys.stderr.write("Could not read file %s at iteration %d.\n" %(sys.argv[1], iter+1))
+  # one epoch per line
+  for i,line in enumerate(wf):
+    if i == iter:
+       w = json.loads(line)
+  if iter > i:
+      sys.stderr.write("Error: %i epochs found in file, but epoch %i requested\n" %(i, iter))
       sys.exit(1)
-
-    count += 1
-    continue
-  # count == iter
-  try:
-    w = svector.Vector(json.load(wf))
-  except:
-    sys.stderr.write("Could not read file %s at iteration %d.\n" %(sys.argv[1], iter+1))
-    sys.exit(1)
 
   # Write weight vector to output file
   sys.stderr.write("%d components\n" %(len(w)))

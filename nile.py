@@ -569,7 +569,8 @@ def do_training(indices, training_blob, heldout_blob, weights, weights_out, debi
     ####################################
     if myRank == 0:
       json.dump(newWeights_avg, weights_out)
- 	    # Need to flush output somehow here. Does weights_out.flush() work?
+
+      weights_out.write('\n')
       weights_out.flush()
 
     ##################################################
