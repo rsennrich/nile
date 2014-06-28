@@ -30,6 +30,7 @@ import sys
 import random
 import tempfile
 import time
+import StringIO
 
 import Alignment
 import Fmeasure
@@ -154,30 +155,18 @@ def decode_parallel(weights, indices, blob, name="", out=sys.stdout):
   result_file = robustWrite(tmpdir+'/results.'+str(mpi.rank))
 
   for i, instanceID in enumerate(indices[:FLAGS.subset]):
+
+    f, e, etree, gold_str, ftree, a1, a2, inverse = get_next_instance(blob['f_instances'],
+                                                                      blob['e_instances'],
+                                                                      blob['etree_instances'],
+                                                                      blob['gold_instances'],
+                                                                      blob['ftree_instances'],
+                                                                      blob['a1_instances'],
+                                                                      blob['a2_instances'],
+                                                                      blob['inverse_instances'])
     if myRank == i % nProcs:
-      # Assign the current instances we will look at
-      f = blob['f_instances'][instanceID]
-      e = blob['e_instances'][instanceID]
-      etree = blob['etree_instances'][instanceID]
       if FLAGS.train:
-        gold_str = blob['gold_instances'][instanceID]
         gold = Alignment.Alignment(gold_str)
-
-      ftree = None
-      if FLAGS.ftrees is not None:
-        ftree = blob['ftree_instances'][instanceID]
-
-      inverse = None
-      if FLAGS.inverse is not None:
-        inverse = blob['inverse_instances'][instanceID]
-
-      a1 = None
-      if FLAGS.a1 is not None:
-        a1 = blob['a1_instances'][instanceID]
-
-      a2 = None
-      if FLAGS.a2 is not None:
-        a2 = blob['a2_instances'][instanceID]
 
       # Prepare input data.
       # f, e are sequences of words
@@ -302,28 +291,16 @@ def perceptron_parallel(epoch, indices, blob, weights = None, valid_feature_name
   numChanged = 0
   done = False
   for i, instanceID in enumerate(indices[:FLAGS.subset]):
+    f, e, etree, gold_str, ftree, a1, a2, inverse = get_next_instance(blob['f_instances'],
+                                                                      blob['e_instances'],
+                                                                      blob['etree_instances'],
+                                                                      blob['gold_instances'],
+                                                                      blob['ftree_instances'],
+                                                                      blob['a1_instances'],
+                                                                      blob['a2_instances'],
+                                                                      blob['inverse_instances'])
+
     if myRank == i % nProcs:
-      # Assign the current instances we will look at
-      f = blob['f_instances'][instanceID]
-      e = blob['e_instances'][instanceID]
-      etree = blob['etree_instances'][instanceID]
-      gold_str = blob['gold_instances'][instanceID]
-
-      inverse = None
-      if FLAGS.inverse is not None:
-        inverse = blob['inverse_instances'][instanceID]
-
-      a1 = None
-      if FLAGS.a1 is not None:
-        a1 = blob['a1_instances'][instanceID]
-
-      a2 = None
-      if FLAGS.a2 is not None:
-        a2 = blob['a2_instances'][instanceID]
-
-      ftree = None
-      if FLAGS.ftrees is not None:
-        ftree = blob['ftree_instances'][instanceID]
 
       # Preprocess input data
       # f, e are sequences of words
@@ -549,6 +526,11 @@ def do_training(indices, training_blob, heldout_blob, weights, weights_out, debi
   if FLAGS.debiasing:
     valid_feature_names = getFeatureNames(debiasing_weights)
 
+  # load training instances into memory
+  active_instances = [key for key in ['f_instances','e_instances','etree_instances','ftree_instances','gold_instances','a1_instances','a2_instances','inverse_instances'] if training_blob[key] is not None]
+  for key in active_instances:
+    training_blob[key+'_unshuffled'] = training_blob[key].readlines()
+
   for epoch in range(FLAGS.maxepochs):
     # Randomize order of examples; broadcast this randomized order to all processes.
     # The particular subset any perceptron process gets for this epoch is dependent
@@ -556,6 +538,15 @@ def do_training(indices, training_blob, heldout_blob, weights, weights_out, debi
     if myRank == 0 and FLAGS.shuffle:
       random.shuffle(indices)
     indices = mpi.bcast(indices, root=0)
+
+    # Create virtual files in shuffled order
+    for key in active_instances:
+      shuffled = StringIO.StringIO()
+      unshuffled = training_blob[key+'_unshuffled']
+      for i in indices:
+        shuffled.write(unshuffled[i])
+      shuffled.seek(0)
+      training_blob[key] = shuffled
 
     ##################################################
     # SEARCH: Find 1-best under current model
@@ -581,8 +572,45 @@ def do_training(indices, training_blob, heldout_blob, weights, weights_out, debi
     if FLAGS.decodeheldout:
       io_helper.write_master("===EPOCH %d DECODE HELDOUT===\n" %(epoch))
       decode_parallel(newWeights_avg, indices_dev, heldout_blob, "dev")
+
+    ##################################################
+    # Reset heldout files for reading
+    ##################################################
+    if FLAGS.decodeheldout:
+      for key in active_instances:
+        heldout_blob[key].seek(0)
+
   if myRank == 0:
     weights_out.close()
+
+
+# read all relevant data for the next sentence
+def get_next_instance(f,e,etrees,gold,ftrees,a1,a2,inverse):
+    f_line = f.readline().strip()
+    e_line = e.readline().strip()
+    etree = etrees.readline().strip()
+    if FLAGS.train:
+        gold_line = gold.readline()
+    else:
+        gold_line = None
+    if FLAGS.ftrees is not None:
+        ftree = ftrees.readline()
+    else:
+        ftree = None
+    if FLAGS.a1 is not None:
+        a1_line = a1.readline().strip()
+    else:
+        a1_line = None
+    if FLAGS.a2 is not None:
+        a2_line = a2.readline()
+    else:
+        a2_line = None
+    if FLAGS.inverse is not None:
+        inverse_line = inverse.readline().strip()
+    else:
+        inverse_line = None
+
+    return f_line, e_line, etree, gold_line, ftree, a1_line, a2_line, inverse_line
 
 if __name__ == "__main__":
     myRank = mpi.rank
@@ -727,63 +755,21 @@ if __name__ == "__main__":
     tmpdir = mpi.bcast(tmpdir, root=0)
 
 
-    ################################################
-    # Load training examples
-    ################################################
-    for f, e, etree in izip(file_handles['f'],
-                               file_handles['e'],
-                               file_handles['etrees']):
-      f_instances.append(f.strip())
-      e_instances.append(e.strip())
-      etree_instances.append(etree.strip())
-    indices = range(len(e_instances))
-    ################################################
-    # Load held-out dev examples
-    ################################################
+    ###########################################################
+    # get number of training instances
+    ###########################################################
+    i = 0
+    for line in file_handles['f']:
+        i += 1
+    file_handles['f'].seek(0)
+    indices = range(i)
+
     if FLAGS.train:
-      for g in file_handles['gold']:
-        gold_instances.append(g.strip())
-      for f, e, etree, g in izip(file_handles['fdev'],
-                                 file_handles['edev'],
-                                 file_handles['etreesdev'],
-                                 file_handles['golddev']):
-        f_dev_instances.append(f.strip())
-        e_dev_instances.append(e.strip())
-        etree_dev_instances.append(etree.strip())
-        gold_dev_instances.append(g.strip())
-      indices_dev = range(len(e_dev_instances))
-
-    ################################################
-    # LOAD OPTIONAL EXTRAS
-    ################################################
-    if FLAGS.ftrees is not None:
-      for ftree in file_handles['ftrees']:
-        ftree_instances.append(ftree.strip())
-      if FLAGS.train:
-        for ftree in file_handles['ftreesdev']:
-          ftree_dev_instances.append(ftree.strip())
-
-    if FLAGS.inverse is not None:
-        for inverse in file_handles['inverse']:
-          inverse_instances.append(inverse.strip())
-        if FLAGS.train:
-            for inverse in file_handles['inverse_dev']:
-              inverse_dev_instances.append(inverse.strip())
-
-    if FLAGS.a1 is not None:
-      for a1 in file_handles['a1']:
-        a1_instances.append(a1.strip())
-      if FLAGS.train:
-        for a1 in file_handles['a1_dev']:
-          a1_dev_instances.append(a1.strip())
-
-    if FLAGS.a2 is not None:
-      for a2 in file_handles['a2']:
-        a2_instances.append(a2.strip())
-      if FLAGS.train:
-        for a2 in file_handles['a2_dev']:
-          a2_dev_instances.append(a2.strip())
-
+      i = 0
+      for line in file_handles['fdev']:
+        i += 1
+      file_handles['fdev'].seek(0)
+      indices_dev = range(i)
 
     ###########################################################
     # Initialize weights
@@ -820,26 +806,49 @@ if __name__ == "__main__":
       'tmpdir': tmpdir
     }
     training_blob = {
-      'f_instances': f_instances,
-      'e_instances': e_instances,
-      'etree_instances': etree_instances,
-      'ftree_instances': ftree_instances,
-      'gold_instances': gold_instances,
-      'a1_instances': a1_instances,
-      'a2_instances': a2_instances,
-      'inverse_instances': inverse_instances
+      'f_instances': file_handles['f'],
+      'e_instances': file_handles['e'],
+      'etree_instances': file_handles['etrees'],
+      'ftree_instances': None,
+      'gold_instances': None,
+      'a1_instances': None,
+      'a2_instances': None,
+      'inverse_instances': None
     }
+
+    if FLAGS.ftrees is not None:
+      training_blob['ftree_instances'] = file_handles['ftrees']
+    if FLAGS.train:
+      training_blob['gold_instances'] = file_handles['gold']
+    if FLAGS.a1 is not None:
+      training_blob['a1_instances'] = file_handles['a1']
+    if FLAGS.a2 is not None:
+      training_blob['a2_instances'] = file_handles['a2']
+    if FLAGS.inverse is not None:
+      training_blob['inverse_instances'] = file_handles['inverse']
+
     if FLAGS.train:
       heldout_blob = {
-        'f_instances': f_dev_instances,
-        'e_instances': e_dev_instances,
-        'etree_instances': etree_dev_instances,
-        'ftree_instances': ftree_dev_instances,
-        'gold_instances': gold_dev_instances,
-        'a1_instances': a1_dev_instances,
-        'a2_instances': a2_dev_instances,
-        'inverse_instances': inverse_dev_instances
+      'f_instances': file_handles['fdev'],
+      'e_instances': file_handles['edev'],
+      'etree_instances': file_handles['etreesdev'],
+      'ftree_instances': None,
+      'gold_instances': file_handles['golddev'],
+      'a1_instances': None,
+      'a2_instances': None,
+      'inverse_instances': None
       }
+
+      if FLAGS.ftrees is not None:
+        heldout_blob['ftree_instances'] = file_handles['ftreesdev']
+      if FLAGS.a1 is not None:
+        heldout_blob['a1_instances'] = file_handles['a1_dev']
+      if FLAGS.a2 is not None:
+        heldout_blob['a2_instances'] = file_handles['a2_dev']
+      if FLAGS.inverse is not None:
+        heldout_blob['inverse_instances'] = file_handles['inverse_dev']
+
+
     training_blob.update(common_blob)
     if FLAGS.train:
       heldout_blob.update(common_blob)
